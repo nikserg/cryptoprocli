@@ -1,0 +1,18 @@
+{
+    "name": "nikserg/cryptoprocli",
+    "description": "Console CryptoPro exec",
+    "keywords": ["sign", "cryptopro"],
+    "authors": [
+        {
+            "name": "Nikita Zarubin",
+            "email": "nikitadimitrov@gmail.com"
+        }
+    ],
+    "autoload": {
+      "psr-4": {
+        "nikserg\\cryptoprocli\\": ""
+      }
+    },
+    "require": {
+    }
+}
