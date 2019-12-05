@@ -38,6 +38,27 @@ class CryptoProCli
     }
 
     /**
+     * Подписать данные
+     *
+     *
+     * @param $data
+     * @param $thumbprint
+     * @return bool|string
+     */
+    public static function signData($data, $thumbprint)
+    {
+        $from = tempnam('/tmp', 'cpsign');
+        $to = tempnam('/tmp', 'cpsign');
+        file_put_contents($from, $data);
+
+        self::signFile($from, $thumbprint, $to);
+        unlink($from);
+        $return = file_get_contents($to);
+        unlink($to);
+        return $return;
+    }
+
+    /**
      * Добавить подпись в файл, уже содержащий подпись
      *
      * @param string $file Путь к файлу
