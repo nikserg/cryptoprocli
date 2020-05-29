@@ -16,6 +16,14 @@ class CryptoProCli
      */
     public static $cryptcpExec = '/opt/cprocsp/bin/amd64/cryptcp';
 
+    private static function getCryptcpExec()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return '"'.self::$cryptcpExec.'"';
+        } else {
+            return self::$cryptcpExec;
+        }
+    }
 
     /**
      * Подписать ранее неподписанный файл
@@ -27,7 +35,7 @@ class CryptoProCli
      */
     public static function signFile($file, $thumbprint, $toFile = null)
     {
-        $shellCommand = self::$cryptcpExec .
+        $shellCommand = self::getCryptcpExec() .
             ' -sign -thumbprint ' . $thumbprint . ' ' . $file . ' ' . $toFile;
         $result = shell_exec($shellCommand);
 
@@ -67,12 +75,27 @@ class CryptoProCli
      */
     public static function addSignToFile($file, $thumbprint)
     {
-        $shellCommand = self::$cryptcpExec .
+        $shellCommand = self::getCryptcpExec() .
             ' -addsign -thumbprint ' . $thumbprint . ' ' . $file;
         $result = shell_exec($shellCommand);
 
         if (strpos($result, "Signed message is created.") <= 0) {
             throw new \Exception('В ответе Cryptcp не найдена строка Signed message is created: ' . $result . ' команда ' . $shellCommand);
+        }
+    }
+
+    /**
+     * @param $file
+     * @throws \Exception
+     */
+    public static function verifyFile($file)
+    {
+        $shellCommand = self::getCryptcpExec() .
+            ' -verify -verall ' . $file;
+        $result = shell_exec($shellCommand);
+        if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
+            //Проверка неуспешна
+            throw new \Exception('В ответе Cryptcp не найдена строка [ErrorCode: 0x00000000] и [ReturnCode: 0]: ' . $result . ' команда ' . $shellCommand);
         }
     }
 }
