@@ -15,4 +15,5 @@
 * `CryptoProCli::signFile($file, $thumbprint, $toFile = null)` - Подписать ранее неподписанный файл
 * `CryptoProCli::signData($data, $thumbprint)` - Подписать данные
 * `CryptoProCli::addSignToFile($file, $thumbprint)` - Добавить подпись в файл, уже содержащий подпись
-* `CryptoProCli::verifyFile($file):bool` - Проверяет корректность всех подписей, наложенных на файл.
+* `CryptoProCli::verifyFile($file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если все хорошо, ничего не происходит.
+* `CryptoProCli::verifyFileContent($file)` - Аналогично verifyFile, но по содержимому.

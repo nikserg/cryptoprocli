@@ -21,7 +21,7 @@ class CryptoProCli
     private static function getCryptcpExec()
     {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            return '"'.self::$cryptcpExec.'"';
+            return '"' . self::$cryptcpExec . '"';
         } else {
             return self::$cryptcpExec;
         }
@@ -87,12 +87,32 @@ class CryptoProCli
     }
 
     /**
+     * Проверить, что содержимое файла подписано правильной подписью
+     *
+     *
+     * @param $fileContent
+     */
+    public static function verifyFileContent($fileContent)
+    {
+        $file = tempnam(sys_get_temp_dir(), 'cpc');
+        file_put_contents($file, $fileContent);
+        try {
+            self::verifyFile($file);
+        } finally {
+            unlink($file);
+        }
+    }
+
+    /**
+     * Проверить, что файл подписан правильной подписью
+     *
+     *
      * @param $file
      * @throws Cli
      */
     public static function verifyFile($file)
     {
-        $shellCommand = 'yes "n" | '. self::getCryptcpExec() .
+        $shellCommand = 'yes "n" | ' . self::getCryptcpExec() .
             ' -verify -verall ' . $file;
         $result = shell_exec($shellCommand);
         if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
