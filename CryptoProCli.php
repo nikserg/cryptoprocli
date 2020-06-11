@@ -2,6 +2,8 @@
 
 namespace nikserg\cryptoprocli;
 
+use nikserg\cryptoprocli\Exception\Cli;
+
 /**
  * Class CryptoProCli
  *
@@ -86,7 +88,7 @@ class CryptoProCli
 
     /**
      * @param $file
-     * @throws \Exception
+     * @throws Cli
      */
     public static function verifyFile($file)
     {
@@ -95,7 +97,7 @@ class CryptoProCli
         $result = shell_exec($shellCommand);
         if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
             //Проверка неуспешна
-            throw new \Exception('В ответе Cryptcp не найдена строка [ErrorCode: 0x00000000] и [ReturnCode: 0]: ' . $result . ' команда ' . $shellCommand);
+            throw new Cli('В ответе Cryptcp не найдена строка [ErrorCode: 0x00000000] и [ReturnCode: 0]: ' . $result . ' команда ' . $shellCommand);
         }
     }
 }
