@@ -90,7 +90,7 @@ class CryptoProCli
      */
     public static function verifyFile($file)
     {
-        $shellCommand = self::getCryptcpExec() .
+        $shellCommand = 'yes "n" | '. self::getCryptcpExec() .
             ' -verify -verall ' . $file;
         $result = shell_exec($shellCommand);
         if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
