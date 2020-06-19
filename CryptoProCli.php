@@ -103,6 +103,14 @@ class CryptoProCli
         }
     }
 
+    private static function getDevNull()
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return 'NUL';
+        }
+        return '/dev/null';
+    }
+
     /**
      * Проверить, что файл подписан правильной подписью
      *
@@ -112,8 +120,7 @@ class CryptoProCli
      */
     public static function verifyFile($file)
     {
-        $shellCommand = 'yes "n" | ' . self::getCryptcpExec() .
-            ' -verify -verall ' . $file;
+        $shellCommand = 'yes "n" 2> '.self::getDevNull().' | ' . escapeshellarg(self::$cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
         $result = shell_exec($shellCommand);
         if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
             //Проверка неуспешна
