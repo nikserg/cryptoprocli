@@ -1,3 +1,6 @@
+[![Build Status](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/badges/build.png?b=master)](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/build-status/master)
+[![Code Intelligence Status](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
+
 # cryptoprocli
 
 Функции для работы с серверной КриптоПро. Для работы должен быть установлен КриптоПро и доступен https://www.cryptopro.ru/products/other/cryptcp
