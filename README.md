@@ -1,4 +1,4 @@
-[![Build Status](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/badges/build.png?b=master)](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/build-status/master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/?branch=master)
 [![Code Intelligence Status](https://scrutinizer-ci.com/g/nikserg/cryptoprocli/badges/code-intelligence.svg?b=master)](https://scrutinizer-ci.com/code-intelligence)
 
 # cryptoprocli
