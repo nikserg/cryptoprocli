@@ -118,11 +118,11 @@ class CryptoProCli
     public static function verifyFileContentDetached($fileSignContent, $fileToBeSignedContent)
     {
         $fileToBeSigned = tempnam(sys_get_temp_dir(), 'detach');
-        $fileSign .= $fileToBeSigned . '.sgn';
+        $fileSign = $fileToBeSigned . '.sgn';
         file_put_contents($fileSign, $fileSignContent);
         file_put_contents($fileToBeSigned, $fileToBeSignedContent);
         try {
-            self::verifyFileDetached($fileSign, $fileToBeSigned);
+            self::verifyFileDetached($fileSign, $fileToBeSigned, sys_get_temp_dir());
         } finally {
             unlink($fileSign);
             unlink($fileToBeSigned);
@@ -180,8 +180,8 @@ class CryptoProCli
         //Пример cryptcp.exe -verify y:\text.txt -detached -nochain -f y:\signature.sig -dir y:\
         $shellCommand = 'yes "n" 2> '.self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -vsignf -dir '
             . escapeshellarg($fileDir) . ' '
-            . escapeshellarg($fileSign)
-            . ' -f ' . escapeshellarg($fileToBeSigned);
+            . escapeshellarg($fileToBeSigned)
+            . ' -f ' . escapeshellarg($fileSign);
         $result = shell_exec($shellCommand);
         if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
             preg_match('#\[ErrorCode: (.+)\]#', $result, $matches);
