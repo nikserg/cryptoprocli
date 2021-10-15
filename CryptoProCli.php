@@ -137,10 +137,11 @@ class CryptoProCli
         return '/dev/null';
     }
 
+    CONST ERROR_CODE_WRONG_SIGN = '0x200001f9';
     const ERROR_CODE_MESSAGE = [
         '0x20000133' => 'Цепочка сертификатов не проверена',
-        '0x200001f9' => 'Подпись не верна',
-        '0x2000012d' => 'Сетификаты не найдены',
+        self::ERROR_CODE_WRONG_SIGN => 'Подпись не верна',
+        '0x2000012d' => 'Сертификаты не найдены',
         '0x2000012e' => 'Более одного сертификата',
     ];
 
@@ -160,7 +161,12 @@ class CryptoProCli
             preg_match('#\[ErrorCode: (.+)\]#', $result, $matches);
             $code = strtolower($matches[1]);
             if (isset(self::ERROR_CODE_MESSAGE[$code])) {
-                throw new SignatureError(self::ERROR_CODE_MESSAGE[$code]);
+                $message = self::ERROR_CODE_MESSAGE[$code];
+                //Дополнительная расшифровка ошибки
+                if (strpos($result, 'The certificate or certificate chain is based on an untrusted root') !== false) {
+                    $message .= ' - нет доверия к корневому сертификату УЦ, выпустившего эту подпись.';
+                }
+                throw new SignatureError($message);
             }
             throw new Cli("Неожиданный результат $shellCommand: \n$result");
         }
