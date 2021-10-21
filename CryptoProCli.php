@@ -14,6 +14,13 @@ use nikserg\cryptoprocli\Exception\SignatureError;
  */
 class CryptoProCli
 {
+
+    /**
+     * @var bool Небезопасный режим - когда цепочка подтверждения подписи не проверяется.
+     * Включение даст возможность использовать самоподписанные сертификаты.
+     */
+    public static $unsafeMode = false;
+
     /**
      * @var string Путь к исполняемому файлу Curl КриптоПро
      */
@@ -34,12 +41,16 @@ class CryptoProCli
      * @param string $file
      * @param string $thumbprint
      * @param null   $toFile
+     * @param bool $detached Создать открепленную подпись
      * @throws Cli
      */
-    public static function signFile($file, $thumbprint, $toFile = null)
+    public static function signFile($file, $thumbprint, $toFile = null, $detached = false)
     {
         $shellCommand = self::getCryptcpExec() .
-            ' -sign -thumbprint ' . $thumbprint . ' ' . $file . ' ' . $toFile;
+            ' -sign '.($detached ? '-detached' : '').' -thumbprint ' . $thumbprint . ' ' . $file . ' ' . $toFile;
+        if (self::$unsafeMode) {
+            $shellCommand = 'yes | '.$shellCommand;
+        }
         $result = shell_exec($shellCommand);
 
         if (strpos($result, "Signed message is created.") <= 0 && strpos($result,
