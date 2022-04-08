@@ -41,15 +41,15 @@ class CryptoProCli
      * @param string $file
      * @param string $thumbprint
      * @param null   $toFile
-     * @param bool $detached Создать открепленную подпись
+     * @param bool   $detached Создать открепленную подпись
      * @throws Cli
      */
     public static function signFile($file, $thumbprint, $toFile = null, $detached = false)
     {
         $shellCommand = self::getCryptcpExec() .
-            ' -sign '.($detached ? '-detached' : '').' -thumbprint ' . $thumbprint . ' ' . $file . ' ' . $toFile;
+            ' -sign ' . ($detached ? '-detached' : '') . ' -thumbprint ' . $thumbprint . ' ' . $file . ' ' . $toFile;
         if (self::$unsafeMode) {
-            $shellCommand = 'yes | '.$shellCommand;
+            $shellCommand = 'yes | ' . $shellCommand;
         }
         $result = shell_exec($shellCommand);
 
@@ -78,6 +78,7 @@ class CryptoProCli
         unlink($from);
         $return = file_get_contents($to);
         unlink($to);
+
         return $return;
     }
 
@@ -145,16 +146,21 @@ class CryptoProCli
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             return 'NUL';
         }
+
         return '/dev/null';
     }
 
-    CONST ERROR_CODE_WRONG_SIGN = '0x200001f9';
+    const ERROR_CODE_WRONG_SIGN = '0x200001f9';
+    const ERROR_CODE_WRONG_CHAIN = '0x20000133';
+    const ERROR_CODE_NO_CERTS = '0x2000012d';
+    const ERROR_CODE_MULTIPLE_CERTS = '0x2000012e';
+    const ERROR_CODE_UNTRUSTED_ROOT = '0x20000131';
     const ERROR_CODE_MESSAGE = [
-        '0x20000133' => 'Цепочка сертификатов не проверена',
-        self::ERROR_CODE_WRONG_SIGN => 'Подпись не верна',
-        '0x2000012d' => 'Сертификаты не найдены',
-        '0x2000012e' => 'Более одного сертификата',
-        '0x20000131' => 'Нет доверия к корневому сертификату',
+        self::ERROR_CODE_WRONG_CHAIN    => 'Цепочка сертификатов не проверена',
+        self::ERROR_CODE_WRONG_SIGN     => 'Подпись не верна',
+        self::ERROR_CODE_NO_CERTS       => 'Сертификаты не найдены',
+        self::ERROR_CODE_MULTIPLE_CERTS => 'Более одного сертификата',
+        self::ERROR_CODE_UNTRUSTED_ROOT => 'Нет доверия к корневому сертификату',
     ];
 
     /**
@@ -167,7 +173,7 @@ class CryptoProCli
      */
     public static function verifyFile($file)
     {
-        $shellCommand = 'yes "n" 2> '.self::getDevNull().' | ' . escapeshellarg(self::$cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
+        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
         $result = shell_exec($shellCommand);
         if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
             preg_match('#\[ErrorCode: (.+)\]#', $result, $matches);
@@ -178,7 +184,7 @@ class CryptoProCli
                 if (strpos($result, 'The certificate or certificate chain is based on an untrusted root') !== false) {
                     $message .= ' - нет доверия к корневому сертификату УЦ, выпустившего эту подпись.';
                 }
-                throw new SignatureError($message);
+                throw new SignatureError($message, $code);
             }
             throw new Cli("Неожиданный результат $shellCommand: \n$result");
         }
@@ -196,7 +202,7 @@ class CryptoProCli
     public static function verifyFileDetached($fileSign, $fileToBeSigned, $fileDir)
     {
         //Пример cryptcp.exe -verify y:\text.txt -detached -nochain -f y:\signature.sig -dir y:\
-        $shellCommand = 'yes "n" 2> '.self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -vsignf -dir '
+        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -vsignf -dir '
             . escapeshellarg($fileDir) . ' '
             . escapeshellarg($fileToBeSigned)
             . ' -f ' . escapeshellarg($fileSign);
@@ -205,7 +211,7 @@ class CryptoProCli
             preg_match('#\[ErrorCode: (.+)\]#', $result, $matches);
             $code = strtolower($matches[1]);
             if (isset(self::ERROR_CODE_MESSAGE[$code])) {
-                throw new SignatureError(self::ERROR_CODE_MESSAGE[$code]);
+                throw new SignatureError(self::ERROR_CODE_MESSAGE[$code], $code);
             }
             throw new Cli("Неожиданный результат $shellCommand: \n$result");
         }
