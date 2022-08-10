@@ -7,18 +7,21 @@ use Throwable;
 /**
  * Ошибка в подписи
  *
+ *
  * @package nikserg\cryptoprocli\Exception
  */
 class SignatureError extends \Exception
 {
-    protected $signatureCode;
-    public function __construct($message = "", $signatureCode = null, $code = 0, Throwable $previous = null)
+    protected string $signatureCode;
+
+    public function __construct(string $message = "", string $signatureCode = null, int $code = 0, Throwable $previous = null)
     {
         $this->signatureCode = $signatureCode;
+
         parent::__construct($message, $code, $previous);
     }
 
-    public function getSignatureCode()
+    public function getSignatureCode(): ?string
     {
         return $this->signatureCode;
     }
