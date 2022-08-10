@@ -32,14 +32,14 @@ class CryptoProCli
     private string $pin;
 
     /**
-     * @var string Путь к исполняемому файлу Curl КриптоПро
+     * @var string Путь к исполняемому файлу cryptcp КриптоПро
      */
-    private static string $cryptcpExec = '/opt/cprocsp/bin/amd64/cryptcp';
+    public string $cryptcpExec = '/opt/cprocsp/bin/amd64/cryptcp';
 
     /**
-     * @var string Команда получения списка всех подписей
+     * @var string Путь к исполняемому файлу certmgr КриптоПро
      */
-    private static string $certmgrExec = '/opt/cprocsp/bin/amd64/certmgr -list -store uMy';
+    public string $certmgrExec = '/opt/cprocsp/bin/amd64/certmgr';
 
     /**
      * @param bool $detached
@@ -54,23 +54,30 @@ class CryptoProCli
     }
 
     /**
-     * Получить список подписей
+     * Возвращает exec в зависимостри от ОС
+     *
+     *
+     * @param $path
+     * @return string
+     */
+    private static function getExec($path): string
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            return '"' . $path . '"';
+        } else {
+            return $path;
+        }
+    }
+
+    /**
+     * Получить список всех подписей
      *
      *
      * @return string|false|null
      */
-    public static function getSigns(): string|false|null
+    public function getSigns(): string|false|null
     {
-        return shell_exec(self::$certmgrExec);
-    }
-
-    private static function getCryptcpExec(): string
-    {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            return '"' . self::$cryptcpExec . '"';
-        } else {
-            return self::$cryptcpExec;
-        }
+        return shell_exec(self::getExec($this->certmgrExec) . ' -list -store uMy');
     }
 
     /**
@@ -84,7 +91,7 @@ class CryptoProCli
      */
     public function signFile(string $file, string $thumbprint, string $toFile = ''): void
     {
-        $shellCommand = self::getCryptcpExec()
+        $shellCommand = self::getExec($this->cryptcpExec)
             . ' -sign'
             . ($this->detached ? ' -detached' : '')
             . ($this->nochain ? ' -nochain' : '')
@@ -132,7 +139,7 @@ class CryptoProCli
      */
     public function addSignToFile(string $file, string $thumbprint): void
     {
-        $shellCommand = self::getCryptcpExec()
+        $shellCommand = self::getExec($this->cryptcpExec)
             . ' -addsign'
             . ($this->nochain ? ' -nochain' : '')
             . ' -thumbprint ' . $thumbprint
@@ -158,7 +165,7 @@ class CryptoProCli
         $file = tempnam(sys_get_temp_dir(), 'cpc');
         file_put_contents($file, $fileContent);
         try {
-            self::verifyFile($file);
+            $this->verifyFile($file);
         } finally {
             unlink($file);
         }
@@ -180,7 +187,7 @@ class CryptoProCli
         file_put_contents($fileSign, $fileSignContent);
         file_put_contents($fileToBeSigned, $fileToBeSignedContent);
         try {
-            self::verifyFileDetached($fileSign, $fileToBeSigned, sys_get_temp_dir());
+            $this->verifyFileDetached($fileSign, $fileToBeSigned, sys_get_temp_dir());
         } finally {
             unlink($fileSign);
             unlink($fileToBeSigned);
@@ -218,7 +225,7 @@ class CryptoProCli
      */
     public function verifyFile(string $file): void
     {
-        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
+        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg($this->cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
         $result = shell_exec($shellCommand);
         if (!str_contains($result, "[ErrorCode: 0x00000000]") && !str_contains($result, "[ReturnCode: 0]")) {
             preg_match('#\[ErrorCode: (.+)]#', $result, $matches);
@@ -248,7 +255,7 @@ class CryptoProCli
      */
     public function verifyFileDetached(string $fileSign, string $fileToBeSigned, string $fileDir): void
     {
-        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -vsignf -dir '
+        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg($this->cryptcpExec) . ' -vsignf -dir '
             . escapeshellarg($fileDir) . ' '
             . escapeshellarg($fileToBeSigned)
             . ' -f ' . escapeshellarg($fileSign);
