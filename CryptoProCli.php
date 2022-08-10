@@ -16,20 +16,10 @@ use nikserg\cryptoprocli\Exception\SignatureError;
 class CryptoProCli
 {
     /**
-     * @var bool Создать открепленную подпись.
-     */
-    private bool $detached;
-
-    /**
      * @var bool Небезопасный режим - когда цепочка подтверждения подписи не проверяется.
      * Включение даст возможность использовать самоподписанные сертификаты.
      */
     private bool $nochain;
-
-    /**
-     * @var string Задать пароль ключевого контейнера.
-     */
-    private string $pin;
 
     /**
      * @var string Путь к исполняемому файлу cryptcp КриптоПро
@@ -41,26 +31,19 @@ class CryptoProCli
      */
     public string $certmgrExec = '/opt/cprocsp/bin/amd64/certmgr';
 
-    /**
-     * @param bool $detached
-     * @param bool $nochain
-     * @param string $pin
-     */
-    public function __construct(bool $detached = false, bool $nochain = false, string $pin = '')
+    public function __construct(bool $nochain = false)
     {
-        $this->detached = $detached;
         $this->nochain = $nochain;
-        $this->pin = $pin;
     }
 
     /**
      * Возвращает exec в зависимостри от ОС
      *
      *
-     * @param $path
+     * @param string $path
      * @return string
      */
-    private static function getExec($path): string
+    private static function getExec(string $path): string
     {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             return '"' . $path . '"';
@@ -84,19 +67,21 @@ class CryptoProCli
      * Подписать ранее неподписанный файл
      *
      *
-     * @param string $file
-     * @param string $thumbprint
+     * @param string $file Путь к подписываемому файлу
+     * @param string $thumbprint SHA1 hash подписи
+     * @param string $pin Пароль ключевого контейнера
      * @param string $toFile
+     * @param bool $detached Создать открепленную подпись
      * @throws Cli
      */
-    public function signFile(string $file, string $thumbprint, string $toFile = ''): void
+    public function signFile(string $file, string $thumbprint, string $pin = '', string $toFile = '', bool $detached = false): void
     {
         $shellCommand = self::getExec($this->cryptcpExec)
             . ' -sign'
-            . ($this->detached ? ' -detached' : '')
+            . ($detached ? ' -detached' : '')
             . ($this->nochain ? ' -nochain' : '')
             . ' -thumbprint ' . $thumbprint
-            . ($this->pin ? ' -pin ' . $this->pin : '')
+            . ($pin ? ' -pin ' . $pin : '')
             . ' ' . $file . ' ' . $toFile;
         $result = shell_exec($shellCommand);
 
@@ -110,18 +95,19 @@ class CryptoProCli
      * Подписать данные
      *
      *
-     * @param string $data
-     * @param string $thumbprint
+     * @param string $data Строка подписываемых данных
+     * @param string $thumbprint SHA1 hash подписи
+     * @param string $pin Пароль ключевого контейнера
      * @return bool|string
      * @throws Cli
      */
-    public function signData(string $data, string $thumbprint): bool|string
+    public function signData(string $data, string $thumbprint, string $pin = ''): bool|string
     {
         $from = tempnam('/tmp', 'cpsign');
         $to = tempnam('/tmp', 'cpsign');
         file_put_contents($from, $data);
 
-        $this->signFile($from, $thumbprint, $to);
+        $this->signFile($from, $thumbprint, $pin, $to);
         unlink($from);
         $return = file_get_contents($to);
         unlink($to);
@@ -133,17 +119,18 @@ class CryptoProCli
      * Добавить подпись в файл, уже содержащий подпись
      *
      *
-     * @param string $file Путь к файлу
-     * @param string $thumbprint SHA1 отпечаток, например, bb959544444d8d9e13ca3b8801d5f7a52f91fe97
+     * @param string $file Путь к подписываемому файлу
+     * @param string $thumbprint SHA1 hash подписи
+     * @param string $pin Пароль ключевого контейнера
      * @throws Cli
      */
-    public function addSignToFile(string $file, string $thumbprint): void
+    public function addSignToFile(string $file, string $thumbprint, string $pin = ''): void
     {
         $shellCommand = self::getExec($this->cryptcpExec)
             . ' -addsign'
             . ($this->nochain ? ' -nochain' : '')
             . ' -thumbprint ' . $thumbprint
-            . ($this->pin ? ' -pin ' . $this->pin : '')
+            . ($pin ? ' -pin ' . $pin : '')
             . ' ' . $file;
         $result = shell_exec($shellCommand);
 

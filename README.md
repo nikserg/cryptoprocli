@@ -13,17 +13,19 @@
 
 ## Конструктор объекта CryptoProCli
 
-- `bool $detached = false`. Создать открепленную подпись.
 - `bool $nochain = false`. Небезопасный режим - когда цепочка подтверждения подписи не проверяется.
-- `string $pin = ''`. Задать пароль ключевого контейнера.
+
+## Некоторые параметры методов объекта CryptoProCli
+
+- `string $thumbprint` - SHA1 hash подписи.
+- `string $pin = ''` - Пароль ключевого контейнера.
+- `bool $detached = false` - Создать или нет открепленную подпись.
 
 ## Методы объекта CryptoProCli
 
-Под `$thumbprint` понимается SHA1-отпечаток подписи.
-
-* `getSigns()` - Получить список всех подписей
-* `signFile(string $file, string $thumbprint, string $toFile = '')` - Подписать ранее неподписанный файл
-* `signData(string $data, string $thumbprint)` - Подписать данные
-* `addSignToFile(string $file, string $thumbprint)` - Добавить подпись в файл, уже содержащий подпись
+* `getSigns()` - Получить список всех подписей.
+* `signFile(string $file, string $thumbprint, string $toFile = '')` - Подписать ранее неподписанный файл.
+* `signData(string $data, string $thumbprint)` - Подписать данные.
+* `addSignToFile(string $file, string $thumbprint)` - Добавить подпись в файл, уже содержащий подпись.
 * `verifyFile(string $file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если все хорошо, ничего не происходит.
 * `verifyFileContent(string $file)` - Аналогично verifyFile, но по содержимому.
