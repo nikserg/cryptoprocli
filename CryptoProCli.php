@@ -10,47 +10,94 @@ use nikserg\cryptoprocli\Exception\SignatureError;
  *
  * Функции для работы с консольной утилитой КриптоПро
  *
+ *
  * @package nikserg\cryptoprocli
  */
 class CryptoProCli
 {
+    /**
+     * @var bool Создать открепленную подпись.
+     */
+    private bool $detached;
 
     /**
      * @var bool Небезопасный режим - когда цепочка подтверждения подписи не проверяется.
      * Включение даст возможность использовать самоподписанные сертификаты.
      */
-    public static $unsafeMode = false;
+    private bool $nochain;
 
     /**
-     * @var string Путь к исполняемому файлу Curl КриптоПро
+     * @var string Задать пароль ключевого контейнера.
      */
-    public static $cryptcpExec = '/opt/cprocsp/bin/amd64/cryptcp';
+    private string $pin;
 
-    private static function getCryptcpExec()
+    /**
+     * @var string Путь к исполняемому файлу cryptcp КриптоПро
+     */
+    public string $cryptcpExec = '/opt/cprocsp/bin/amd64/cryptcp';
+
+    /**
+     * @var string Путь к исполняемому файлу certmgr КриптоПро
+     */
+    public string $certmgrExec = '/opt/cprocsp/bin/amd64/certmgr';
+
+    /**
+     * @param bool $detached
+     * @param bool $nochain
+     * @param string $pin
+     */
+    public function __construct(bool $detached = false, bool $nochain = false, string $pin = '')
+    {
+        $this->detached = $detached;
+        $this->nochain = $nochain;
+        $this->pin = $pin;
+    }
+
+    /**
+     * Возвращает exec в зависимостри от ОС
+     *
+     *
+     * @param $path
+     * @return string
+     */
+    private static function getExec($path): string
     {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            return '"' . self::$cryptcpExec . '"';
+            return '"' . $path . '"';
         } else {
-            return self::$cryptcpExec;
+            return $path;
         }
+    }
+
+    /**
+     * Получить список всех подписей
+     *
+     *
+     * @return string|false|null
+     */
+    public function getSigns(): string|false|null
+    {
+        return shell_exec(self::getExec($this->certmgrExec) . ' -list -store uMy');
     }
 
     /**
      * Подписать ранее неподписанный файл
      *
+     *
      * @param string $file
      * @param string $thumbprint
-     * @param null   $toFile
-     * @param bool   $detached Создать открепленную подпись
+     * @param string $toFile
      * @throws Cli
      */
-    public static function signFile($file, $thumbprint, $toFile = null, $detached = false)
+    public function signFile(string $file, string $thumbprint, string $toFile = ''): void
     {
-        $shellCommand = self::getCryptcpExec() .
-            ' -sign ' . ($detached ? '-detached' : '') . ' -thumbprint ' . $thumbprint . ' ' . $file . ' ' . $toFile;
-        if (self::$unsafeMode) {
-            $shellCommand = 'yes | ' . $shellCommand;
-        }
+        $shellCommand = self::getExec($this->cryptcpExec)
+            . ' -sign'
+            . ($this->detached ? ' -detached' : '')
+            . ($this->nochain ? ' -nochain' : '')
+            . ' -thumbprint ' . $thumbprint
+            . ($this->pin ? ' -pin ' . $this->pin : '')
+            . ' ' . $file . ' ' . $toFile;
         $result = shell_exec($shellCommand);
 
         if (strpos($result, "Signed message is created.") <= 0 && strpos($result,
@@ -63,18 +110,18 @@ class CryptoProCli
      * Подписать данные
      *
      *
-     * @param $data
-     * @param $thumbprint
+     * @param string $data
+     * @param string $thumbprint
      * @return bool|string
      * @throws Cli
      */
-    public static function signData($data, $thumbprint)
+    public function signData(string $data, string $thumbprint): bool|string
     {
         $from = tempnam('/tmp', 'cpsign');
         $to = tempnam('/tmp', 'cpsign');
         file_put_contents($from, $data);
 
-        self::signFile($from, $thumbprint, $to);
+        $this->signFile($from, $thumbprint, $to);
         unlink($from);
         $return = file_get_contents($to);
         unlink($to);
@@ -85,15 +132,21 @@ class CryptoProCli
     /**
      * Добавить подпись в файл, уже содержащий подпись
      *
+     *
      * @param string $file Путь к файлу
      * @param string $thumbprint SHA1 отпечаток, например, bb959544444d8d9e13ca3b8801d5f7a52f91fe97
      * @throws Cli
      */
-    public static function addSignToFile($file, $thumbprint)
+    public function addSignToFile(string $file, string $thumbprint): void
     {
-        $shellCommand = self::getCryptcpExec() .
-            ' -addsign -thumbprint ' . $thumbprint . ' ' . $file;
+        $shellCommand = self::getExec($this->cryptcpExec)
+            . ' -addsign'
+            . ($this->nochain ? ' -nochain' : '')
+            . ' -thumbprint ' . $thumbprint
+            . ($this->pin ? ' -pin ' . $this->pin : '')
+            . ' ' . $file;
         $result = shell_exec($shellCommand);
+
         if (strpos($result, "Signed message is created.") <= 0) {
             throw new Cli('В ответе Cryptcp не найдена строка Signed message is created: ' . $result . ' команда ' . $shellCommand);
         }
@@ -103,16 +156,16 @@ class CryptoProCli
      * Проверить, что содержимое файла подписано правильной подписью
      *
      *
-     * @param $fileContent
+     * @param string $fileContent
      * @throws Cli
      * @throws SignatureError
      */
-    public static function verifyFileContent($fileContent)
+    public function verifyFileContent(string $fileContent): void
     {
         $file = tempnam(sys_get_temp_dir(), 'cpc');
         file_put_contents($file, $fileContent);
         try {
-            self::verifyFile($file);
+            $this->verifyFile($file);
         } finally {
             unlink($file);
         }
@@ -122,31 +175,30 @@ class CryptoProCli
      * Проверить, что содержимое файла подписано правильной подписью открепленной подписью
      *
      *
-     * @param $fileSignContent
-     * @param $fileToBeSigned
+     * @param string $fileSignContent
+     * @param string $fileToBeSignedContent
      * @throws Cli
      * @throws SignatureError
      */
-    public static function verifyFileContentDetached($fileSignContent, $fileToBeSignedContent)
+    public function verifyFileContentDetached(string $fileSignContent, string $fileToBeSignedContent): void
     {
         $fileToBeSigned = tempnam(sys_get_temp_dir(), 'detach');
         $fileSign = $fileToBeSigned . '.sgn';
         file_put_contents($fileSign, $fileSignContent);
         file_put_contents($fileToBeSigned, $fileToBeSignedContent);
         try {
-            self::verifyFileDetached($fileSign, $fileToBeSigned, sys_get_temp_dir());
+            $this->verifyFileDetached($fileSign, $fileToBeSigned, sys_get_temp_dir());
         } finally {
             unlink($fileSign);
             unlink($fileToBeSigned);
         }
     }
 
-    private static function getDevNull()
+    private static function getDevNull(): string
     {
         if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
             return 'NUL';
         }
-
         return '/dev/null';
     }
 
@@ -167,21 +219,22 @@ class CryptoProCli
      * Проверить, что файл подписан правильной подписью
      *
      *
-     * @param $file
+     * @param string $file
      * @throws Cli
      * @throws SignatureError
      */
-    public static function verifyFile($file)
+    public function verifyFile(string $file): void
     {
-        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
+        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg($this->cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
         $result = shell_exec($shellCommand);
-        if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
-            preg_match('#\[ErrorCode: (.+)\]#', $result, $matches);
+        if (!str_contains($result, "[ErrorCode: 0x00000000]") && !str_contains($result, "[ReturnCode: 0]")) {
+            preg_match('#\[ErrorCode: (.+)]#', $result, $matches);
             $code = strtolower($matches[1]);
             if (isset(self::ERROR_CODE_MESSAGE[$code])) {
                 $message = self::ERROR_CODE_MESSAGE[$code];
+
                 //Дополнительная расшифровка ошибки
-                if (strpos($result, 'The certificate or certificate chain is based on an untrusted root') !== false) {
+                if (str_contains($result, 'The certificate or certificate chain is based on an untrusted root')) {
                     $message .= ' - нет доверия к корневому сертификату УЦ, выпустившего эту подпись.';
                 }
                 throw new SignatureError($message, $code);
@@ -191,24 +244,25 @@ class CryptoProCli
     }
 
     /**
-     * Проверить, что файл подписан правильной открепленной подписью подписью
+     * Проверить, что файл подписан правильной открепленной подписью
      *
-     * @param $fileSign
-     * @param $fileToBeSigned
-     * @param $fileDir
+     *
+     * @param string $fileSign
+     * @param string $fileToBeSigned
+     * @param string $fileDir
      * @throws Cli
      * @throws SignatureError
      */
-    public static function verifyFileDetached($fileSign, $fileToBeSigned, $fileDir)
+    public function verifyFileDetached(string $fileSign, string $fileToBeSigned, string $fileDir): void
     {
-        //Пример cryptcp.exe -verify y:\text.txt -detached -nochain -f y:\signature.sig -dir y:\
-        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg(self::$cryptcpExec) . ' -vsignf -dir '
+        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg($this->cryptcpExec) . ' -vsignf -dir '
             . escapeshellarg($fileDir) . ' '
             . escapeshellarg($fileToBeSigned)
             . ' -f ' . escapeshellarg($fileSign);
         $result = shell_exec($shellCommand);
-        if (strpos($result, "[ErrorCode: 0x00000000]") === false && strpos($result, "[ReturnCode: 0]") === false) {
-            preg_match('#\[ErrorCode: (.+)\]#', $result, $matches);
+
+        if (!str_contains($result, "[ErrorCode: 0x00000000]") && !str_contains($result, "[ReturnCode: 0]")) {
+            preg_match('#\[ErrorCode: (.+)]#', $result, $matches);
             $code = strtolower($matches[1]);
             if (isset(self::ERROR_CODE_MESSAGE[$code])) {
                 throw new SignatureError(self::ERROR_CODE_MESSAGE[$code], $code);
@@ -216,5 +270,4 @@ class CryptoProCli
             throw new Cli("Неожиданный результат $shellCommand: \n$result");
         }
     }
-
 }

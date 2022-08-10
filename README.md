@@ -9,14 +9,21 @@
 
 `composer require nikserg/cryptoprocli`
 
-В переменной `CryptoProCli::$cryptcpExec` хранится путь к утилите `cryptcp`. Путь по умолчанию подходит для Linux-систем. Для Windows-систем путь нужно изменить.
+В свойстве `$cryptcpExec` объекта CryptoProCli хранится путь к утилите `cryptcp`. В свойстве `$certmgrExec` объекта CryptoProCli хранится путь к утилите `cryptcp`. Пути по умолчанию подходят для Linux-систем. Для Windows-систем пути нужно изменить.
 
-## Функции
+## Конструктор объекта CryptoProCli
+
+- `bool $detached = false`. Создать открепленную подпись.
+- `bool $nochain = false`. Небезопасный режим - когда цепочка подтверждения подписи не проверяется.
+- `string $pin = ''`. Задать пароль ключевого контейнера.
+
+## Методы объекта CryptoProCli
 
 Под `$thumbprint` понимается SHA1-отпечаток подписи.
 
-* `CryptoProCli::signFile($file, $thumbprint, $toFile = null)` - Подписать ранее неподписанный файл
-* `CryptoProCli::signData($data, $thumbprint)` - Подписать данные
-* `CryptoProCli::addSignToFile($file, $thumbprint)` - Добавить подпись в файл, уже содержащий подпись
-* `CryptoProCli::verifyFile($file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если все хорошо, ничего не происходит.
-* `CryptoProCli::verifyFileContent($file)` - Аналогично verifyFile, но по содержимому.
+* `getSigns()` - Получить список всех подписей
+* `signFile(string $file, string $thumbprint, string $toFile = '')` - Подписать ранее неподписанный файл
+* `signData(string $data, string $thumbprint)` - Подписать данные
+* `addSignToFile(string $file, string $thumbprint)` - Добавить подпись в файл, уже содержащий подпись
+* `verifyFile(string $file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если все хорошо, ничего не происходит.
+* `verifyFileContent(string $file)` - Аналогично verifyFile, но по содержимому.
