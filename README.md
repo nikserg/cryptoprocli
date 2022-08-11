@@ -17,8 +17,7 @@
 
 ## Некоторые параметры методов объекта CryptoProCli
 
-- `string $thumbprint` - SHA1 hash подписи.
-- `string $pin = ''` - Пароль ключевого контейнера.
+- `string|array $thumbprint` - SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера.
 - `bool $detached = false` - Создать или нет открепленную подпись.
 
 ## Методы объекта CryptoProCli
