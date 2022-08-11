@@ -68,19 +68,19 @@ class CryptoProCli
      *
      *
      * @param string $file Путь к подписываемому файлу
-     * @param string $thumbprint SHA1 hash подписи
-     * @param string $pin Пароль ключевого контейнера
+     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
      * @param string $toFile
      * @param bool $detached Создать открепленную подпись
      * @throws Cli
      */
-    public function signFile(string $file, string $thumbprint, string $pin = '', string $toFile = '', bool $detached = false): void
+    public function signFile(string $file, string|array $thumbprint, string $toFile = '', bool $detached = false): void
     {
+        list($hash, $pin) = is_array($thumbprint) ? $thumbprint : [$thumbprint, ''];
         $shellCommand = self::getExec($this->cryptcpExec)
             . ' -sign'
             . ($detached ? ' -detached' : '')
             . ($this->nochain ? ' -nochain' : '')
-            . ' -thumbprint ' . $thumbprint
+            . ' -thumbprint ' . $hash
             . ($pin ? ' -pin ' . $pin : '')
             . ' ' . $file . ' ' . $toFile;
         $result = shell_exec($shellCommand);
@@ -96,18 +96,17 @@ class CryptoProCli
      *
      *
      * @param string $data Строка подписываемых данных
-     * @param string $thumbprint SHA1 hash подписи
-     * @param string $pin Пароль ключевого контейнера
+     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
      * @return bool|string
      * @throws Cli
      */
-    public function signData(string $data, string $thumbprint, string $pin = ''): bool|string
+    public function signData(string $data, string|array $thumbprint): bool|string
     {
         $from = tempnam('/tmp', 'cpsign');
         $to = tempnam('/tmp', 'cpsign');
         file_put_contents($from, $data);
 
-        $this->signFile($from, $thumbprint, $pin, $to);
+        $this->signFile($from, $thumbprint, $to);
         unlink($from);
         $return = file_get_contents($to);
         unlink($to);
@@ -120,16 +119,16 @@ class CryptoProCli
      *
      *
      * @param string $file Путь к подписываемому файлу
-     * @param string $thumbprint SHA1 hash подписи
-     * @param string $pin Пароль ключевого контейнера
+     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
      * @throws Cli
      */
-    public function addSignToFile(string $file, string $thumbprint, string $pin = ''): void
+    public function addSignToFile(string $file, string|array $thumbprint): void
     {
+        list($hash, $pin) = is_array($thumbprint) ? $thumbprint : [$thumbprint, ''];
         $shellCommand = self::getExec($this->cryptcpExec)
             . ' -addsign'
             . ($this->nochain ? ' -nochain' : '')
-            . ' -thumbprint ' . $thumbprint
+            . ' -thumbprint ' . $hash
             . ($pin ? ' -pin ' . $pin : '')
             . ' ' . $file;
         $result = shell_exec($shellCommand);
