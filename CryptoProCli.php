@@ -31,6 +31,11 @@ class CryptoProCli
      */
     public string $certmgrExec = '/opt/cprocsp/bin/amd64/certmgr';
 
+    /**
+     * @var string Путь к исполняемому файлу curl КриптоПро
+     */
+    public string $curlExec = '/opt/cprocsp/bin/amd64/curl';
+
     public function __construct(bool $nochain = false)
     {
         $this->nochain = $nochain;
@@ -255,5 +260,40 @@ class CryptoProCli
             }
             throw new Cli("Неожиданный результат $shellCommand: \n$result");
         }
+    }
+
+    /**
+     * Curl-запросы с использованием гостовых сертификатов
+     *
+     *
+     * @param string $url
+     * @param string|array $thumbprint
+     * @param string $method
+     * @param string|null $bearer
+     * @param string|null $contentType
+     * @param string|null $data
+     * @return bool|string
+     */
+    public function proxyCurl(
+        string $url,
+        string|array $thumbprint,
+        string $method = 'GET',
+        string $bearer = null,
+        string $contentType = null,
+        string $data = null
+    ): bool|string
+    {
+        list($hash, $pin) = is_array($thumbprint) ? $thumbprint : [$thumbprint, ''];
+        $shellCommand = self::getExec($this->curlExec)
+            . ' -k -s -X ' . $method
+            . ' ' . $url
+            . ' --cert-type CERT_SHA1_HASH_PROP_ID:CERT_SYSTEM_STORE_CURRENT_USER:My'
+            . ' --cert ' . $hash
+            . ($pin ? ' --pass ' . $pin : '')
+            . ($bearer ? ' --header \"Authorization: Bearer ' . $bearer . '\"' : '')
+            . ($contentType ? ' --header \"Content-Type: ' . $contentType . '\"' : '')
+            . ($data ? ' --data \'' . str_replace("'", "'\''", $data) . '\'' : '');
+
+        return shell_exec($shellCommand);
     }
 }
