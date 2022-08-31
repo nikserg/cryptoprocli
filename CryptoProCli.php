@@ -290,8 +290,8 @@ class CryptoProCli
             . ' --cert-type CERT_SHA1_HASH_PROP_ID:CERT_SYSTEM_STORE_CURRENT_USER:My'
             . ' --cert ' . $hash
             . ($pin ? ' --pass ' . $pin : '')
-            . ($bearer ? ' --header \"Authorization: Bearer ' . $bearer . '\"' : '')
-            . ($contentType ? ' --header \"Content-Type: ' . $contentType . '\"' : '')
+            . ($bearer ? ' --header "Authorization: Bearer ' . $bearer . '"' : '')
+            . ($contentType ? ' --header "Content-Type: ' . $contentType . '"' : '')
             . ($data ? ' --data \'' . str_replace("'", "'\''", $data) . '\'' : '');
 
         return shell_exec($shellCommand);
