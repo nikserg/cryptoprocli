@@ -9,7 +9,7 @@
 
 `composer require nikserg/cryptoprocli`
 
-В свойстве `$cryptcpExec` объекта CryptoProCli хранится путь к утилите `cryptcp`. В свойстве `$certmgrExec` объекта CryptoProCli хранится путь к утилите `cryptcp`. Пути по умолчанию подходят для Linux-систем. Для Windows-систем пути нужно изменить.
+В свойстве `$cryptcpExec` объекта CryptoProCli хранится путь к утилите `cryptcp`. В свойстве `$certmgrExec` объекта CryptoProCli хранится путь к утилите `cryptcp`. В свойстве `$curlExec` объекта CryptoProCli хранится путь к утилите `curl`. Пути по умолчанию подходят для Linux-систем. Для Windows-систем пути нужно изменить.
 
 ## Конструктор объекта CryptoProCli
 
@@ -28,3 +28,4 @@
 * `addSignToFile(string $file, string $thumbprint)` - Добавить подпись в файл, уже содержащий подпись.
 * `verifyFile(string $file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если все хорошо, ничего не происходит.
 * `verifyFileContent(string $file)` - Аналогично verifyFile, но по содержимому.
+* `proxyCurl(string $url, string|array $thumbprint, string $method = 'GET', string $bearer = null, string $contentType = null, string $data = null)` - Curl-запросы с использованием гостовых сертификатов
