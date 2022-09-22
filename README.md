@@ -26,6 +26,6 @@
 * `signFile(string $file, string $thumbprint, string $toFile = '')` - Подписать ранее неподписанный файл.
 * `signData(string $data, string $thumbprint)` - Подписать данные.
 * `addSignToFile(string $file, string $thumbprint)` - Добавить подпись в файл, уже содержащий подпись.
-* `verifyFile(string $file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если все хорошо, ничего не происходит.
+* `verifyFile(string $file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если нет ошибок, возвращает результат операции.
 * `verifyFileContent(string $file)` - Аналогично verifyFile, но по содержимому.
-* `proxyCurl(string $url, string|array $thumbprint, string $method = 'GET', string $bearer = null, string $contentType = null, string $data = null)` - Curl-запросы с использованием гостовых сертификатов
+* `proxyCurl(string $url, string|array $thumbprint, string $method = 'GET', ?array $headers = null, ?string $data = null)` - Curl-запросы с использованием гостовых сертификатов

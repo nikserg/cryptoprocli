@@ -102,13 +102,14 @@ class CryptoProCli
      *
      * @param string $data Строка подписываемых данных
      * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
-     * @return bool|string
+     * @return string|false
      * @throws Cli
      */
-    public function signData(string $data, string|array $thumbprint): bool|string
+    public function signData(string $data, string|array $thumbprint): string|false
     {
         $from = tempnam('/tmp', 'cpsign');
         $to = tempnam('/tmp', 'cpsign');
+
         file_put_contents($from, $data);
 
         $this->signFile($from, $thumbprint, $to);
@@ -148,18 +149,21 @@ class CryptoProCli
      *
      *
      * @param string $fileContent
+     * @return string|false|null
      * @throws Cli
      * @throws SignatureError
      */
-    public function verifyFileContent(string $fileContent): void
+    public function verifyFileContent(string $fileContent): string|false|null
     {
         $file = tempnam(sys_get_temp_dir(), 'cpc');
         file_put_contents($file, $fileContent);
         try {
-            $this->verifyFile($file);
+            $result = $this->verifyFile($file);
         } finally {
             unlink($file);
         }
+
+        return $result;
     }
 
     /**
@@ -211,13 +215,19 @@ class CryptoProCli
      *
      *
      * @param string $file
+     * @return string|false|null
      * @throws Cli
      * @throws SignatureError
      */
-    public function verifyFile(string $file): void
+    public function verifyFile(string $file): string|false|null
     {
-        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg($this->cryptcpExec) . ' -verify -verall ' . escapeshellarg($file);
+        $shellCommand = self::getExec($this->cryptcpExec)
+            . ' -verify -verall'
+            . ($this->nochain ? ' -nochain' : '')
+            . ' ' . $file;
+
         $result = shell_exec($shellCommand);
+
         if (!str_contains($result, "[ErrorCode: 0x00000000]") && !str_contains($result, "[ReturnCode: 0]")) {
             preg_match('#\[ErrorCode: (.+)]#', $result, $matches);
             $code = strtolower($matches[1]);
@@ -232,6 +242,8 @@ class CryptoProCli
             }
             throw new Cli("Неожиданный результат $shellCommand: \n$result");
         }
+
+        return $result;
     }
 
     /**
@@ -272,26 +284,30 @@ class CryptoProCli
      * @param string|null $bearer
      * @param string|null $contentType
      * @param string|null $data
-     * @return bool|string
+     * @return string|false|null
      */
     public function proxyCurl(
         string $url,
         string|array $thumbprint,
         string $method = 'GET',
-        string $bearer = null,
-        string $contentType = null,
-        string $data = null
-    ): bool|string
+        ?array $headers = null,
+        ?string $data = null
+    ): string|false|null
     {
         list($hash, $pin) = is_array($thumbprint) ? $thumbprint : [$thumbprint, ''];
         $shellCommand = self::getExec($this->curlExec)
             . ' -k -s -X ' . $method
-            . ' ' . $url
-            . ' --cert-type CERT_SHA1_HASH_PROP_ID:CERT_SYSTEM_STORE_CURRENT_USER:My'
+            . ' ' . $url;
+
+        if ($headers ?? null) {
+            foreach ($headers as $header) {
+                $shellCommand .= ' --header "' . $header . '"';
+            }
+        }
+
+        $shellCommand .= ' --cert-type CERT_SHA1_HASH_PROP_ID:CERT_SYSTEM_STORE_CURRENT_USER:My'
             . ' --cert ' . $hash
             . ($pin ? ' --pass ' . $pin : '')
-            . ($bearer ? ' --header "Authorization: Bearer ' . $bearer . '"' : '')
-            . ($contentType ? ' --header "Content-Type: ' . $contentType . '"' : '')
             . ($data ? ' --data \'' . str_replace("'", "'\''", $data) . '\'' : '');
 
         return shell_exec($shellCommand);
