@@ -20,7 +20,6 @@ class Cli extends \Exception
      */
     public function getMessageSafe(): array|string|false
     {
-        $message = $this->getMessage();
-        return mb_convert_encoding($message, 'UTF-8', 'UTF-8');
+        return mb_convert_encoding($this->getMessage(), 'UTF-8', 'UTF-8');
     }
 }

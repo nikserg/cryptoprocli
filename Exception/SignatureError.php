@@ -14,7 +14,12 @@ class SignatureError extends \Exception
 {
     protected string $signatureCode;
 
-    public function __construct(string $message = "", string $signatureCode = null, int $code = 0, Throwable $previous = null)
+    public function __construct(
+        string $message = "",
+        string $signatureCode = null,
+        int $code = 0,
+        Throwable $previous = null
+    )
     {
         $this->signatureCode = $signatureCode;
 

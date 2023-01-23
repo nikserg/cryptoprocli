@@ -15,6 +15,19 @@ use nikserg\cryptoprocli\Exception\SignatureError;
  */
 class CryptoProCli
 {
+    const ERROR_CODE_WRONG_SIGN = '0x200001f9';
+    const ERROR_CODE_WRONG_CHAIN = '0x20000133';
+    const ERROR_CODE_NO_CERTS = '0x2000012d';
+    const ERROR_CODE_MULTIPLE_CERTS = '0x2000012e';
+    const ERROR_CODE_UNTRUSTED_ROOT = '0x20000131';
+    const ERROR_CODE_MESSAGE = [
+        self::ERROR_CODE_WRONG_CHAIN    => 'Цепочка сертификатов не проверена',
+        self::ERROR_CODE_WRONG_SIGN     => 'Подпись не верна',
+        self::ERROR_CODE_NO_CERTS       => 'Сертификаты не найдены',
+        self::ERROR_CODE_MULTIPLE_CERTS => 'Более одного сертификата',
+        self::ERROR_CODE_UNTRUSTED_ROOT => 'Нет доверия к корневому сертификату',
+    ];
+
     /**
      * @var bool Небезопасный режим - когда цепочка подтверждения подписи не проверяется.
      * Включение даст возможность использовать самоподписанные сертификаты.
@@ -42,7 +55,7 @@ class CryptoProCli
     }
 
     /**
-     * Возвращает exec в зависимостри от ОС
+     * Возвращает exec в зависимости от ОС
      *
      *
      * @param string $path
@@ -73,7 +86,7 @@ class CryptoProCli
      *
      *
      * @param string $file Путь к подписываемому файлу
-     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
+     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив содержащий thumbprint и pin пароль ключевого контейнера
      * @param string $toFile
      * @param bool $detached Создать открепленную подпись
      * @throws Cli
@@ -90,8 +103,7 @@ class CryptoProCli
             . ' ' . $file . ' ' . $toFile;
         $result = shell_exec($shellCommand);
 
-        if (strpos($result, "Signed message is created.") <= 0 && strpos($result,
-                "Подписанное сообщение успешно создано") <= 0) {
+        if (strpos($result, "Signed message is created.") <= 0 && strpos($result, "Подписанное сообщение успешно создано") <= 0) {
             throw new Cli('В ответе Cryptcp не найдена строка "Signed message is created" или "Подписанное сообщение успешно создано": ' . $result . ' команда ' . $shellCommand);
         }
     }
@@ -101,7 +113,7 @@ class CryptoProCli
      *
      *
      * @param string $data Строка подписываемых данных
-     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
+     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив содержащий thumbprint и pin пароль ключевого контейнера
      * @return string|false
      * @throws Cli
      */
@@ -125,7 +137,7 @@ class CryptoProCli
      *
      *
      * @param string $file Путь к подписываемому файлу
-     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив собержащий thumbprint и pin пароль ключевого контейнера
+     * @param string|array $thumbprint SHA1 hash подписи, либо неассоциативный массив содержащий thumbprint и pin пароль ключевого контейнера
      * @throws Cli
      */
     public function addSignToFile(string $file, string|array $thumbprint): void
@@ -139,8 +151,8 @@ class CryptoProCli
             . ' ' . $file;
         $result = shell_exec($shellCommand);
 
-        if (strpos($result, "Signed message is created.") <= 0) {
-            throw new Cli('В ответе Cryptcp не найдена строка Signed message is created: ' . $result . ' команда ' . $shellCommand);
+        if (strpos($result, "Signed message is created.") <= 0 && strpos($result, "Подписанное сообщение успешно создано") <= 0) {
+            throw new Cli('В ответе Cryptcp не найдена строка "Signed message is created" или "Подписанное сообщение успешно создано": ' . $result . ' команда ' . $shellCommand);
         }
     }
 
@@ -170,45 +182,27 @@ class CryptoProCli
      * Проверить, что содержимое файла подписано правильной подписью открепленной подписью
      *
      *
-     * @param string $fileSignContent
      * @param string $fileToBeSignedContent
+     * @param string $fileSignContent
+     * @return string|false|null
      * @throws Cli
      * @throws SignatureError
      */
-    public function verifyFileContentDetached(string $fileSignContent, string $fileToBeSignedContent): void
+    public function verifyFileContentDetached(string $fileToBeSignedContent, string $fileSignContent): string|false|null
     {
         $fileToBeSigned = tempnam(sys_get_temp_dir(), 'detach');
         $fileSign = $fileToBeSigned . '.sgn';
-        file_put_contents($fileSign, $fileSignContent);
         file_put_contents($fileToBeSigned, $fileToBeSignedContent);
+        file_put_contents($fileSign, $fileSignContent);
         try {
-            $this->verifyFileDetached($fileSign, $fileToBeSigned, sys_get_temp_dir());
+            $result = $this->verifyFileDetached($fileToBeSigned, $fileSign);
         } finally {
-            unlink($fileSign);
             unlink($fileToBeSigned);
+            unlink($fileSign);
         }
-    }
 
-    private static function getDevNull(): string
-    {
-        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-            return 'NUL';
-        }
-        return '/dev/null';
+        return $result;
     }
-
-    const ERROR_CODE_WRONG_SIGN = '0x200001f9';
-    const ERROR_CODE_WRONG_CHAIN = '0x20000133';
-    const ERROR_CODE_NO_CERTS = '0x2000012d';
-    const ERROR_CODE_MULTIPLE_CERTS = '0x2000012e';
-    const ERROR_CODE_UNTRUSTED_ROOT = '0x20000131';
-    const ERROR_CODE_MESSAGE = [
-        self::ERROR_CODE_WRONG_CHAIN    => 'Цепочка сертификатов не проверена',
-        self::ERROR_CODE_WRONG_SIGN     => 'Подпись не верна',
-        self::ERROR_CODE_NO_CERTS       => 'Сертификаты не найдены',
-        self::ERROR_CODE_MULTIPLE_CERTS => 'Более одного сертификата',
-        self::ERROR_CODE_UNTRUSTED_ROOT => 'Нет доверия к корневому сертификату',
-    ];
 
     /**
      * Проверить, что файл подписан правильной подписью
@@ -221,11 +215,46 @@ class CryptoProCli
      */
     public function verifyFile(string $file): string|false|null
     {
-        $shellCommand = self::getExec($this->cryptcpExec)
+        return $this->getVerifyShellCommandResult(
+            self::getExec($this->cryptcpExec)
             . ' -verify -verall'
             . ($this->nochain ? ' -nochain' : '')
-            . ' ' . $file;
+            . ' ' . $file
+        );
+    }
 
+    /**
+     * Проверить, что файл подписан правильной открепленной подписью
+     *
+     *
+     * @param string $fileToBeSigned
+     * @param string $fileSign
+     * @return string|false|null
+     * @throws Cli
+     * @throws SignatureError
+     */
+    public function verifyFileDetached(string $fileToBeSigned, string $fileSign): string|false|null
+    {
+        return $this->getVerifyShellCommandResult(
+            self::getExec($this->cryptcpExec)
+            . ' -verify -verall -detached'
+            . ($this->nochain ? ' -nochain' : '')
+            . ' ' . $fileToBeSigned
+            . ' -f ' . $fileSign
+        );
+    }
+
+    /**
+     * Получить результат выполнения консольной команды проверки подписи
+     *
+     *
+     * @param string $shellCommand
+     * @return string|false|null
+     * @throws Cli
+     * @throws SignatureError
+     */
+    private function getVerifyShellCommandResult(string $shellCommand): string|false|null
+    {
         $result = shell_exec($shellCommand);
 
         if (!str_contains($result, "[ErrorCode: 0x00000000]") && !str_contains($result, "[ReturnCode: 0]")) {
@@ -247,42 +276,13 @@ class CryptoProCli
     }
 
     /**
-     * Проверить, что файл подписан правильной открепленной подписью
-     *
-     *
-     * @param string $fileSign
-     * @param string $fileToBeSigned
-     * @param string $fileDir
-     * @throws Cli
-     * @throws SignatureError
-     */
-    public function verifyFileDetached(string $fileSign, string $fileToBeSigned, string $fileDir): void
-    {
-        $shellCommand = 'yes "n" 2> ' . self::getDevNull() . ' | ' . escapeshellarg($this->cryptcpExec) . ' -vsignf -dir '
-            . escapeshellarg($fileDir) . ' '
-            . escapeshellarg($fileToBeSigned)
-            . ' -f ' . escapeshellarg($fileSign);
-        $result = shell_exec($shellCommand);
-
-        if (!str_contains($result, "[ErrorCode: 0x00000000]") && !str_contains($result, "[ReturnCode: 0]")) {
-            preg_match('#\[ErrorCode: (.+)]#', $result, $matches);
-            $code = strtolower($matches[1]);
-            if (isset(self::ERROR_CODE_MESSAGE[$code])) {
-                throw new SignatureError(self::ERROR_CODE_MESSAGE[$code], $code);
-            }
-            throw new Cli("Неожиданный результат $shellCommand: \n$result");
-        }
-    }
-
-    /**
      * Curl-запросы с использованием гостовых сертификатов
      *
      *
      * @param string $url
      * @param string|array $thumbprint
      * @param string $method
-     * @param string|null $bearer
-     * @param string|null $contentType
+     * @param array|null $headers
      * @param string|null $data
      * @return string|false|null
      */
