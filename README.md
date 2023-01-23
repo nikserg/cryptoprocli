@@ -27,5 +27,7 @@
 * `signData(string $data, string $thumbprint)` - Подписать данные.
 * `addSignToFile(string $file, string $thumbprint)` - Добавить подпись в файл, уже содержащий подпись.
 * `verifyFile(string $file)` - Проверяет корректность всех подписей, наложенных на файл. В случае ошибки выкидывает исключение, если нет ошибок, возвращает результат операции.
-* `verifyFileContent(string $file)` - Аналогично verifyFile, но по содержимому.
+* `verifyFileContent(string $fileContent)` - Аналогично verifyFile, но по-содержимому.
+* `verifyFileDetached(string $fileToBeSigned, string $fileSign)` - Аналогично verifyFile, но для открепленной подписи.
+* `verifyFileContentDetached(string $fileToBeSignedContent, string $fileSignContent)` - Аналогично verifyFileContent, но для открепленной подписи.
 * `proxyCurl(string $url, string|array $thumbprint, string $method = 'GET', ?array $headers = null, ?string $data = null)` - Curl-запросы с использованием гостовых сертификатов
